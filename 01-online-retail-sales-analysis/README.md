@@ -157,10 +157,14 @@ The Excel dashboard includes:
 
 ## Files
 
-| File                                | Description                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| `online_retail_sales_analysis.xlsx` | Main Excel file with cleaned data, QA checks, pivot tables, and dashboard |
-| `README.md`                         | Project documentation                                                     |
+| File                                           | Description                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------- |
+| `online_retail_sales_analysis_dashboard.xlsx`  | Main Excel dashboard file with cleaned data, QA checks, pivot tables, and dashboard |
+| `screenshots/01_dashboard_overview.png`        | Main dashboard overview                                                   |
+| `screenshots/02_dashboard_tables.png`          | Lower dashboard tables and insights                                       |
+| `screenshots/03_data_preview.png`              | Cleaned transaction table preview                                         |
+| `screenshots/04_qa_summary.png`                | QA sheet with data quality checks and KPI summary                         |
+| `README.md`                                    | Project documentation                                                     |
 
 ---
 
