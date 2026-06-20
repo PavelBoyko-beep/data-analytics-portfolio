@@ -1,3 +1,57 @@
+# Online Retail Sales Analysis
+
+## Project Overview
+
+This project analyzes e-commerce transaction data from an online retail store.
+The goal was to clean the raw sales data, separate valid sales from problematic records, calculate key business metrics, and build an Excel dashboard with the main sales insights.
+
+The analysis focuses only on **clean sales**. Cancelled invoices, negative quantities, zero or negative prices, and rows with missing `CustomerID` were excluded from the main sales analysis.
+
+---
+
+## Dataset
+
+The dataset contains online retail transactions with the following fields:
+
+| Column        | Description                  |
+| ------------- | ---------------------------- |
+| `InvoiceNo`   | Invoice/order number         |
+| `StockCode`   | Product code                 |
+| `Description` | Product name                 |
+| `Quantity`    | Number of units purchased    |
+| `InvoiceDate` | Date and time of transaction |
+| `UnitPrice`   | Price per unit               |
+| `CustomerID`  | Customer identifier          |
+| `Country`     | Customer country             |
+
+Each row represents one product line inside an invoice.
+One invoice can contain multiple product rows.
+
+---
+
+## Data Cleaning Logic
+
+A new calculated column `Revenue` was created:
+
+```text
+Revenue = Quantity × UnitPrice
+```
+
+A new classification column `RowType` was also created to separate clean and problematic records:
+
+| RowType               | Logic                       |
+| --------------------- | --------------------------- |
+| `Cancelled invoice`   | `InvoiceNo` starts with `C` |
+| `Negative quantity`   | `Quantity < 0`              |
+| `Zero/negative price` | `UnitPrice <= 0`            |
+| `Missing customer`    | `CustomerID` is missing     |
+| `Clean sale`          | Valid sale row              |
+
+Only rows classified as `Clean sale` were used for the main sales analysis.
+
+---
+
+## Data Quality Summary
 
 | Metric              |   Value |
 | ------------------- | ------: |
@@ -125,3 +179,4 @@ This project demonstrates a full beginner-level data analysis workflow:
 9. Writing business insights based on data
 
 The main business risk identified in this analysis is the strong dependence on the United Kingdom market, which accounts for more than 80% of total clean revenue.
+
