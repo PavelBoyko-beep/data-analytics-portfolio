@@ -223,44 +223,124 @@ ORDER BY table_name, column_name;
 -- ============================================================
 
 SELECT
-    'subscriptions' AS table_name,
-    'end_date' AS column_name,
+    'accounts' AS table_name,
+    'seats' AS column_name,
     COUNT(*) AS total_rows,
-    SUM(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) AS missing_values,
-    ROUND(
-        SUM(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
-        2
-    ) AS missing_percent
+    SUM(CASE WHEN seats < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN seats = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(seats)::NUMERIC AS min_value,
+    MAX(seats)::NUMERIC AS max_value
+FROM accounts
+
+UNION ALL
+
+SELECT
+    'subscriptions' AS table_name,
+    'seats' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN seats < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN seats = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(seats)::NUMERIC AS min_value,
+    MAX(seats)::NUMERIC AS max_value
 FROM subscriptions
 
 UNION ALL
 
 SELECT
-    'support_tickets' AS table_name,
-    'satisfaction_score' AS column_name,
+    'subscriptions' AS table_name,
+    'mrr_amount' AS column_name,
     COUNT(*) AS total_rows,
-    SUM(CASE WHEN satisfaction_score IS NULL THEN 1 ELSE 0 END) AS missing_values,
-    ROUND(
-        SUM(CASE WHEN satisfaction_score IS NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
-        2
-    ) AS missing_percent
+    SUM(CASE WHEN mrr_amount < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN mrr_amount = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(mrr_amount)::NUMERIC AS min_value,
+    MAX(mrr_amount)::NUMERIC AS max_value
+FROM subscriptions
+
+UNION ALL
+
+SELECT
+    'subscriptions' AS table_name,
+    'arr_amount' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN arr_amount < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN arr_amount = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(arr_amount)::NUMERIC AS min_value,
+    MAX(arr_amount)::NUMERIC AS max_value
+FROM subscriptions
+
+UNION ALL
+
+SELECT
+    'feature_usage' AS table_name,
+    'usage_count' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN usage_count < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN usage_count = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(usage_count)::NUMERIC AS min_value,
+    MAX(usage_count)::NUMERIC AS max_value
+FROM feature_usage
+
+UNION ALL
+
+SELECT
+    'feature_usage' AS table_name,
+    'usage_duration_secs' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN usage_duration_secs < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN usage_duration_secs = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(usage_duration_secs)::NUMERIC AS min_value,
+    MAX(usage_duration_secs)::NUMERIC AS max_value
+FROM feature_usage
+
+UNION ALL
+
+SELECT
+    'feature_usage' AS table_name,
+    'error_count' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN error_count < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN error_count = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(error_count)::NUMERIC AS min_value,
+    MAX(error_count)::NUMERIC AS max_value
+FROM feature_usage
+
+UNION ALL
+
+SELECT
+    'support_tickets' AS table_name,
+    'resolution_time_hours' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN resolution_time_hours < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN resolution_time_hours = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(resolution_time_hours)::NUMERIC AS min_value,
+    MAX(resolution_time_hours)::NUMERIC AS max_value
+FROM support_tickets
+
+UNION ALL
+
+SELECT
+    'support_tickets' AS table_name,
+    'first_response_time_minutes' AS column_name,
+    COUNT(*) AS total_rows,
+    SUM(CASE WHEN first_response_time_minutes < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN first_response_time_minutes = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(first_response_time_minutes)::NUMERIC AS min_value,
+    MAX(first_response_time_minutes)::NUMERIC AS max_value
 FROM support_tickets
 
 UNION ALL
 
 SELECT
     'churn_events' AS table_name,
-    'feedback_text' AS column_name,
+    'refund_amount_usd' AS column_name,
     COUNT(*) AS total_rows,
-    SUM(CASE WHEN feedback_text IS NULL THEN 1 ELSE 0 END) AS missing_values,
-    ROUND(
-        SUM(CASE WHEN feedback_text IS NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
-        2
-    ) AS missing_percent
+    SUM(CASE WHEN refund_amount_usd < 0 THEN 1 ELSE 0 END) AS negative_values,
+    SUM(CASE WHEN refund_amount_usd = 0 THEN 1 ELSE 0 END) AS zero_values,
+    MIN(refund_amount_usd)::NUMERIC AS min_value,
+    MAX(refund_amount_usd)::NUMERIC AS max_value
 FROM churn_events
 
 ORDER BY table_name, column_name;
-
 -- ============================================================
 -- 8. Date logic checks
 -- ============================================================
