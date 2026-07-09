@@ -69,3 +69,61 @@ SELECT
 FROM monthly_mrr
 ORDER BY
     month_start;
+
+-- ============================================================
+-- 2. Current Revenue Snapshot
+--
+-- Business question:
+-- What is the current paid customer and recurring revenue snapshot?
+--
+-- Logic:
+-- Use the last month available in the subscription data as the
+-- reporting period. Count paid subscriptions that are active on the
+-- last day of that month. Trial subscriptions are excluded from revenue.
+--
+-- Insight:
+-- As of the latest reporting date, the dataset shows 500 active paid
+-- accounts, 3,836 active paid subscriptions, 10.26M MRR, and 123.11M ARR.
+-- ============================================================
+
+WITH reporting_date AS (
+    SELECT
+        (
+            DATE_TRUNC('month', MAX(start_date))
+            + INTERVAL '1 month'
+            - INTERVAL '1 day'
+        )::DATE AS report_date
+    FROM subscriptions
+),
+
+active_paid_subscriptions AS (
+    SELECT
+        rd.report_date,
+        s.account_id,
+        s.subscription_id,
+        s.mrr_amount,
+        s.arr_amount
+    FROM reporting_date rd
+    LEFT JOIN subscriptions s
+        ON s.start_date <= rd.report_date
+        AND (
+            s.end_date IS NULL
+            OR s.end_date >= rd.report_date
+        )
+        AND s.is_trial = FALSE
+        AND s.mrr_amount > 0
+)
+
+SELECT
+    report_date,
+    COUNT(DISTINCT account_id) AS active_paid_accounts,
+    COUNT(DISTINCT subscription_id) AS active_paid_subscriptions,
+    COALESCE(SUM(mrr_amount), 0) AS current_mrr,
+    COALESCE(SUM(arr_amount), 0) AS current_arr,
+    ROUND(
+        COALESCE(SUM(mrr_amount), 0) / NULLIF(COUNT(DISTINCT account_id), 0),
+        2
+    ) AS avg_mrr_per_account
+FROM active_paid_subscriptions
+GROUP BY
+    report_date;
