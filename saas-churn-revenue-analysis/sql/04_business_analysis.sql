@@ -201,3 +201,71 @@ SELECT
 FROM plan_revenue
 ORDER BY
     current_mrr DESC;
+
+-- ============================================================
+-- 4. Average Revenue per Account by Plan Tier
+--
+-- Business question:
+-- Which plan tiers generate the highest average revenue per account
+-- and per subscription?
+--
+-- Logic:
+-- Use the last month available in the subscription data as the
+-- reporting period. Group active paid subscriptions by plan tier
+-- and calculate average MRR per account and per subscription.
+-- Trial subscriptions are excluded from revenue.
+--
+-- Insight:
+-- Enterprise has the highest revenue efficiency, with 16,535.52
+-- average MRR per account and 5,805.02 average MRR per subscription.
+-- ============================================================
+
+WITH reporting_date AS (
+    SELECT
+        (
+            DATE_TRUNC('month', MAX(start_date))
+            + INTERVAL '1 month'
+            - INTERVAL '1 day'
+        )::DATE AS report_date
+    FROM subscriptions
+),
+
+active_paid_subscriptions AS (
+    SELECT
+        rd.report_date,
+        s.account_id,
+        s.subscription_id,
+        s.plan_tier,
+        s.mrr_amount,
+        s.arr_amount
+    FROM reporting_date rd
+    LEFT JOIN subscriptions s
+        ON s.start_date <= rd.report_date
+        AND (
+            s.end_date IS NULL
+            OR s.end_date >= rd.report_date
+        )
+        AND s.is_trial = FALSE
+        AND s.mrr_amount > 0
+)
+
+SELECT
+    report_date,
+    plan_tier,
+    COUNT(DISTINCT account_id) AS active_paid_accounts,
+    COUNT(DISTINCT subscription_id) AS active_paid_subscriptions,
+    SUM(mrr_amount) AS current_mrr,
+    ROUND(
+        SUM(mrr_amount) / NULLIF(COUNT(DISTINCT account_id), 0),
+        2
+    ) AS avg_mrr_per_account,
+    ROUND(
+        SUM(mrr_amount) / NULLIF(COUNT(DISTINCT subscription_id), 0),
+        2
+    ) AS avg_mrr_per_subscription
+FROM active_paid_subscriptions
+GROUP BY
+    report_date,
+    plan_tier
+ORDER BY
+    avg_mrr_per_account DESC;
