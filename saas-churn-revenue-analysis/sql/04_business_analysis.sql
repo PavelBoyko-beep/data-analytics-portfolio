@@ -269,3 +269,32 @@ GROUP BY
     plan_tier
 ORDER BY
     avg_mrr_per_account DESC;
+
+-- ============================================================
+-- 5. Monthly Churn Events Trend
+--
+-- Business question:
+-- How many churn events happen each month, and how much refund
+-- amount is associated with churn?
+--
+-- Logic:
+-- Group churn events by churn month. Count churn events,
+-- distinct churned accounts, reactivation events, and total refunds.
+--
+-- Insight:
+-- Churn events increase toward the end of the observed period,
+-- with the highest churn volume in December 2024.
+-- ============================================================
+
+SELECT
+    DATE_TRUNC('month', churn_date)::DATE AS churn_month,
+    COUNT(*) AS churn_events,
+    COUNT(DISTINCT account_id) AS churned_accounts,
+    SUM(CASE WHEN is_reactivation = TRUE THEN 1 ELSE 0 END) AS reactivation_events,
+    SUM(refund_amount_usd) AS total_refund_amount,
+    ROUND(AVG(refund_amount_usd), 2) AS avg_refund_amount
+FROM churn_events
+GROUP BY
+    DATE_TRUNC('month', churn_date)::DATE
+ORDER BY
+    churn_month;
