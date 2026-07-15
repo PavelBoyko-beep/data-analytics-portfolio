@@ -331,3 +331,38 @@ GROUP BY
     reason_code
 ORDER BY
     churn_events DESC;
+
+-- ============================================================
+-- 7. Churn by Plan Tier
+--
+-- Business question:
+-- Which plan tiers have the highest number of churn events?
+--
+-- Logic:
+-- Join churn events to accounts to attach plan tier information.
+-- Group churn events by account-level plan tier and calculate churn,
+-- reactivation, and refund metrics.
+--
+-- Insight:
+-- Pro has the highest number of churn events, followed by Enterprise
+-- and Basic. This shows churn volume by tier, not churn rate.
+-- ============================================================
+
+SELECT
+    a.plan_tier,
+    COUNT(*) AS churn_events,
+    COUNT(DISTINCT ce.account_id) AS churned_accounts,
+    SUM(CASE WHEN ce.is_reactivation = TRUE THEN 1 ELSE 0 END) AS reactivation_events,
+    SUM(ce.refund_amount_usd) AS total_refund_amount,
+    ROUND(AVG(ce.refund_amount_usd), 2) AS avg_refund_amount,
+    ROUND(
+        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (),
+        2
+    ) AS churn_event_share_percent
+FROM churn_events ce
+LEFT JOIN accounts a
+    ON ce.account_id = a.account_id
+GROUP BY
+    a.plan_tier
+ORDER BY
+    churn_events DESC;
