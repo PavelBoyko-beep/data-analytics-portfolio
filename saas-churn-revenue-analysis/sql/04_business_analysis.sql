@@ -298,3 +298,36 @@ GROUP BY
     DATE_TRUNC('month', churn_date)::DATE
 ORDER BY
     churn_month;
+
+-- ============================================================
+-- 6. Churn by Reason Code
+--
+-- Business question:
+-- What are the most common churn reasons, and how much refund
+-- amount is associated with each reason?
+--
+-- Logic:
+-- Group churn events by reason_code. Count churn events,
+-- distinct churned accounts, reactivation events, and refund metrics.
+--
+-- Insight:
+-- Feature-related churn is the most common reason,
+-- but churn reasons are relatively distributed across categories.
+-- ============================================================
+
+SELECT
+    reason_code,
+    COUNT(*) AS churn_events,
+    COUNT(DISTINCT account_id) AS churned_accounts,
+    SUM(CASE WHEN is_reactivation = TRUE THEN 1 ELSE 0 END) AS reactivation_events,
+    SUM(refund_amount_usd) AS total_refund_amount,
+    ROUND(AVG(refund_amount_usd), 2) AS avg_refund_amount,
+    ROUND(
+        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (),
+        2
+    ) AS churn_event_share_percent
+FROM churn_events
+GROUP BY
+    reason_code
+ORDER BY
+    churn_events DESC;
