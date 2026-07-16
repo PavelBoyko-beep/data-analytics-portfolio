@@ -366,3 +366,86 @@ GROUP BY
     a.plan_tier
 ORDER BY
     churn_events DESC;
+
+-- ============================================================
+-- 8. Monthly Churn Rate Estimate
+--
+-- Business question:
+-- What is the estimated monthly account churn rate?
+--
+-- Logic:
+-- For each month, calculate the active paid account base at the
+-- start of the month. Then count distinct accounts from that base
+-- that had a churn event during the same month.
+--
+-- This is an estimated account churn rate, not revenue churn.
+-- Trial subscriptions are excluded from the active paid base.
+--
+-- Insight:
+-- Estimated monthly account churn rate increases toward the end of
+-- 2024, reaching 16.24% in December among accounts active at the
+-- start of the month.
+-- ============================================================
+
+WITH date_bounds AS (
+    SELECT
+        DATE_TRUNC('month', MIN(start_date))::DATE AS min_month,
+        DATE_TRUNC('month', MAX(start_date))::DATE AS max_month
+    FROM subscriptions
+),
+
+months AS (
+    SELECT
+        GENERATE_SERIES(
+            min_month,
+            max_month,
+            INTERVAL '1 month'
+        )::DATE AS month_start
+    FROM date_bounds
+),
+
+active_base AS (
+    SELECT DISTINCT
+        m.month_start,
+        s.account_id
+    FROM months m
+    JOIN subscriptions s
+        ON s.start_date <= m.month_start
+        AND (
+            s.end_date IS NULL
+            OR s.end_date >= m.month_start
+        )
+        AND s.is_trial = FALSE
+        AND s.mrr_amount > 0
+),
+
+monthly_churn AS (
+    SELECT
+        m.month_start,
+        COUNT(DISTINCT ab.account_id) AS starting_active_paid_accounts,
+        COUNT(DISTINCT ce.account_id) AS churned_accounts,
+        COUNT(ce.churn_event_id) AS churn_events
+    FROM months m
+    LEFT JOIN active_base ab
+        ON m.month_start = ab.month_start
+    LEFT JOIN churn_events ce
+        ON ce.account_id = ab.account_id
+        AND ce.churn_date >= m.month_start
+        AND ce.churn_date < m.month_start + INTERVAL '1 month'
+    GROUP BY
+        m.month_start
+)
+
+SELECT
+    month_start,
+    (month_start + INTERVAL '1 month' - INTERVAL '1 day')::DATE AS month_end,
+    starting_active_paid_accounts,
+    churned_accounts,
+    churn_events,
+    ROUND(
+        churned_accounts * 100.0 / NULLIF(starting_active_paid_accounts, 0),
+        2
+    ) AS churn_rate_percent
+FROM monthly_churn
+ORDER BY
+    month_start;
