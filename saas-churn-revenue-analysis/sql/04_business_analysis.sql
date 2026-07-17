@@ -449,3 +449,82 @@ SELECT
 FROM monthly_churn
 ORDER BY
     month_start;
+
+-- ============================================================
+-- 9. Churn Rate by Plan Tier
+--
+-- Business question:
+-- Which plan tiers have the highest estimated account churn rate
+-- in the latest reporting month?
+--
+-- Logic:
+-- Use the latest month available in the subscription data as the
+-- reporting month. For each account-level plan tier, calculate the
+-- active paid account base at the start of the month. Then count
+-- distinct accounts from that base that had a churn event during
+-- the same month.
+--
+-- This is an estimated account churn rate by plan tier, not revenue churn.
+-- Plan tier is joined from the accounts table.
+--
+-- Insight:
+-- Enterprise has the highest estimated account churn rate in the
+-- latest reporting month, but churn rates are relatively close
+-- across plan tiers.
+-- ============================================================
+
+WITH reporting_month AS (
+    SELECT
+        DATE_TRUNC('month', MAX(start_date))::DATE AS month_start
+    FROM subscriptions
+),
+
+active_base AS (
+    SELECT DISTINCT
+        rm.month_start,
+        a.plan_tier,
+        s.account_id
+    FROM reporting_month rm
+    JOIN subscriptions s
+        ON s.start_date <= rm.month_start
+        AND (
+            s.end_date IS NULL
+            OR s.end_date >= rm.month_start
+        )
+        AND s.is_trial = FALSE
+        AND s.mrr_amount > 0
+    LEFT JOIN accounts a
+        ON s.account_id = a.account_id
+),
+
+plan_churn AS (
+    SELECT
+        ab.month_start,
+        ab.plan_tier,
+        COUNT(DISTINCT ab.account_id) AS starting_active_paid_accounts,
+        COUNT(DISTINCT ce.account_id) AS churned_accounts,
+        COUNT(ce.churn_event_id) AS churn_events
+    FROM active_base ab
+    LEFT JOIN churn_events ce
+        ON ce.account_id = ab.account_id
+        AND ce.churn_date >= ab.month_start
+        AND ce.churn_date < ab.month_start + INTERVAL '1 month'
+    GROUP BY
+        ab.month_start,
+        ab.plan_tier
+)
+
+SELECT
+    month_start,
+    (month_start + INTERVAL '1 month' - INTERVAL '1 day')::DATE AS month_end,
+    plan_tier,
+    starting_active_paid_accounts,
+    churned_accounts,
+    churn_events,
+    ROUND(
+        churned_accounts * 100.0 / NULLIF(starting_active_paid_accounts, 0),
+        2
+    ) AS churn_rate_percent
+FROM plan_churn
+ORDER BY
+    churn_rate_percent DESC;
