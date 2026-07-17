@@ -613,3 +613,68 @@ GROUP BY
     churn_status
 ORDER BY
     churn_status;
+
+
+-- ============================================================
+-- 11. Feature Usage Summary
+--
+-- Business question:
+-- Which product features are used the most, and which features
+-- have the highest error volume?
+--
+-- Logic:
+-- Aggregate feature usage by feature_name. Count usage events,
+-- distinct subscriptions and accounts using each feature, total usage,
+-- total duration, beta usage events, and error metrics.
+--
+-- Note:
+-- feature_usage.usage_date has a documented lifecycle inconsistency,
+-- so this query does not use usage_date for lifecycle or cohort logic.
+--
+-- Insight:
+-- Feature usage and error rates are relatively evenly distributed
+-- across features in this synthetic dataset, with no single feature
+-- strongly dominating usage or error volume.
+-- ============================================================
+
+WITH feature_summary AS (
+    SELECT
+        fu.feature_name,
+        COUNT(*) AS usage_events,
+        COUNT(DISTINCT fu.subscription_id) AS subscriptions_using_feature,
+        COUNT(DISTINCT s.account_id) AS accounts_using_feature,
+        SUM(fu.usage_count) AS total_usage_count,
+        SUM(fu.usage_duration_secs) AS total_usage_duration_secs,
+        ROUND(AVG(fu.usage_duration_secs), 2) AS avg_duration_secs_per_event,
+        SUM(fu.error_count) AS total_errors,
+        SUM(CASE WHEN fu.error_count > 0 THEN 1 ELSE 0 END) AS events_with_errors,
+        SUM(CASE WHEN fu.is_beta_feature = TRUE THEN 1 ELSE 0 END) AS beta_usage_events
+    FROM feature_usage fu
+    LEFT JOIN subscriptions s
+        ON fu.subscription_id = s.subscription_id
+    GROUP BY
+        fu.feature_name
+)
+
+SELECT
+    feature_name,
+    usage_events,
+    subscriptions_using_feature,
+    accounts_using_feature,
+    total_usage_count,
+    total_usage_duration_secs,
+    avg_duration_secs_per_event,
+    total_errors,
+    events_with_errors,
+    ROUND(
+        events_with_errors * 100.0 / NULLIF(usage_events, 0),
+        2
+    ) AS event_error_rate_percent,
+    ROUND(
+        total_errors * 100.0 / NULLIF(total_usage_count, 0),
+        2
+    ) AS errors_per_100_usage_actions,
+    beta_usage_events
+FROM feature_summary
+ORDER BY
+    total_usage_count DESC;
