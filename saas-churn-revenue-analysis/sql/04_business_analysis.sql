@@ -528,3 +528,88 @@ SELECT
 FROM plan_churn
 ORDER BY
     churn_rate_percent DESC;
+
+-- ============================================================
+-- 10. Support Tickets and Churn
+--
+-- Business question:
+-- Do churned accounts show different support patterns compared
+-- with non-churned accounts?
+--
+-- Logic:
+-- Aggregate support ticket metrics at the account level.
+-- Then classify accounts as churned or not churned based on whether
+-- they have at least one churn event. Compare support volume,
+-- escalation rate, response time, resolution time, and satisfaction.
+--
+-- This comparison shows association, not causation.
+--
+-- Insight:
+-- Churned accounts show a higher escalation rate than non-churned
+-- accounts, while support ticket volume, response time, resolution
+-- time, and satisfaction are very similar.
+-- ============================================================
+
+WITH account_support AS (
+    SELECT
+        account_id,
+        COUNT(ticket_id) AS support_tickets,
+        SUM(CASE WHEN escalation_flag = TRUE THEN 1 ELSE 0 END) AS escalated_tickets,
+        AVG(resolution_time_hours) AS avg_resolution_time_hours,
+        AVG(first_response_time_minutes) AS avg_first_response_minutes,
+        AVG(satisfaction_score) AS avg_satisfaction_score
+    FROM support_tickets
+    GROUP BY
+        account_id
+),
+
+account_churn AS (
+    SELECT
+        account_id,
+        COUNT(*) AS churn_events,
+        MAX(churn_date) AS last_churn_date
+    FROM churn_events
+    GROUP BY
+        account_id
+),
+
+account_level AS (
+    SELECT
+        a.account_id,
+        CASE
+            WHEN ac.churn_events IS NULL THEN 'not_churned'
+            ELSE 'churned'
+        END AS churn_status,
+        COALESCE(ac.churn_events, 0) AS churn_events,
+        COALESCE(sup.support_tickets, 0) AS support_tickets,
+        COALESCE(sup.escalated_tickets, 0) AS escalated_tickets,
+        sup.avg_resolution_time_hours,
+        sup.avg_first_response_minutes,
+        sup.avg_satisfaction_score
+    FROM accounts a
+    LEFT JOIN account_churn ac
+        ON a.account_id = ac.account_id
+    LEFT JOIN account_support sup
+        ON a.account_id = sup.account_id
+)
+
+SELECT
+    churn_status,
+    COUNT(*) AS accounts,
+    SUM(CASE WHEN support_tickets > 0 THEN 1 ELSE 0 END) AS accounts_with_support_tickets,
+    SUM(churn_events) AS churn_events,
+    ROUND(AVG(support_tickets), 2) AS avg_support_tickets_per_account,
+    SUM(support_tickets) AS total_support_tickets,
+    SUM(escalated_tickets) AS total_escalated_tickets,
+    ROUND(
+        SUM(escalated_tickets) * 100.0 / NULLIF(SUM(support_tickets), 0),
+        2
+    ) AS escalation_rate_percent,
+    ROUND(AVG(avg_resolution_time_hours), 2) AS avg_resolution_time_hours,
+    ROUND(AVG(avg_first_response_minutes), 2) AS avg_first_response_minutes,
+    ROUND(AVG(avg_satisfaction_score), 2) AS avg_satisfaction_score
+FROM account_level
+GROUP BY
+    churn_status
+ORDER BY
+    churn_status;
