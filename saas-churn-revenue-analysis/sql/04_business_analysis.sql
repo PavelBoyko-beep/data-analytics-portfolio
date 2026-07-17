@@ -678,3 +678,120 @@ SELECT
 FROM feature_summary
 ORDER BY
     total_usage_count DESC;
+
+-- ============================================================
+-- 12. High-Value Accounts / Revenue Concentration
+--
+-- Business question:
+-- Which accounts contribute the most to current MRR, and how
+-- concentrated is revenue among the top accounts?
+--
+-- Logic:
+-- Use the latest reporting month. Aggregate active paid subscriptions
+-- at the account level, calculate current MRR and ARR per account,
+-- rank accounts by MRR, and calculate cumulative MRR share.
+--
+-- Trial subscriptions are excluded from revenue.
+--
+-- Insight:
+-- Revenue concentration is relatively low: the top 20 accounts
+-- contribute 14.49% of current MRR, and the largest account contributes
+-- only 1.29%.
+-- ============================================================
+
+WITH reporting_date AS (
+    SELECT
+        (
+            DATE_TRUNC('month', MAX(start_date))
+            + INTERVAL '1 month'
+            - INTERVAL '1 day'
+        )::DATE AS report_date
+    FROM subscriptions
+),
+
+active_paid_subscriptions AS (
+    SELECT
+        rd.report_date,
+        s.account_id,
+        s.subscription_id,
+        s.mrr_amount,
+        s.arr_amount
+    FROM reporting_date rd
+    LEFT JOIN subscriptions s
+        ON s.start_date <= rd.report_date
+        AND (
+            s.end_date IS NULL
+            OR s.end_date >= rd.report_date
+        )
+        AND s.is_trial = FALSE
+        AND s.mrr_amount > 0
+),
+
+account_revenue AS (
+    SELECT
+        aps.report_date,
+        a.account_id,
+        a.account_name,
+        a.industry,
+        a.country,
+        a.plan_tier,
+        COUNT(DISTINCT aps.subscription_id) AS active_paid_subscriptions,
+        SUM(aps.mrr_amount) AS current_mrr,
+        SUM(aps.arr_amount) AS current_arr
+    FROM active_paid_subscriptions aps
+    LEFT JOIN accounts a
+        ON aps.account_id = a.account_id
+    GROUP BY
+        aps.report_date,
+        a.account_id,
+        a.account_name,
+        a.industry,
+        a.country,
+        a.plan_tier
+),
+
+ranked_accounts AS (
+    SELECT
+        report_date,
+        account_id,
+        account_name,
+        industry,
+        country,
+        plan_tier,
+        active_paid_subscriptions,
+        current_mrr,
+        current_arr,
+        ROW_NUMBER() OVER (
+            ORDER BY current_mrr DESC
+        ) AS mrr_rank,
+        SUM(current_mrr) OVER () AS total_mrr,
+        SUM(current_mrr) OVER (
+            ORDER BY current_mrr DESC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS cumulative_mrr
+    FROM account_revenue
+)
+
+SELECT
+    report_date,
+    mrr_rank,
+    account_id,
+    account_name,
+    industry,
+    country,
+    plan_tier,
+    active_paid_subscriptions,
+    current_mrr,
+    current_arr,
+    ROUND(
+        current_mrr * 100.0 / NULLIF(total_mrr, 0),
+        2
+    ) AS mrr_share_percent,
+    ROUND(
+        cumulative_mrr * 100.0 / NULLIF(total_mrr, 0),
+        2
+    ) AS cumulative_mrr_share_percent
+FROM ranked_accounts
+ORDER BY
+    mrr_rank
+LIMIT 20;
