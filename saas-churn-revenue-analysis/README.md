@@ -461,8 +461,8 @@ Recommended actions:
 | SQL business analysis | Complete |
 | Python EDA | Complete |
 | Power BI dashboard | Complete |
-| GitHub packaging | In progress |
-| Final QA | Pending |
+| GitHub packaging | Complete |
+| Final QA | Complete |
 
 ---
 
