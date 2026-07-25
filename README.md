@@ -200,7 +200,7 @@ data-analytics-portfolio/
 | # | Project | Status |
 |---:|---|---|
 | 01 | Online Retail Sales Analysis | Complete |
-| 02 | SaaS Churn & Revenue Analysis | Final QA in progress |
+| 02 | SaaS Churn & Revenue Analysis | Complete |
 
 ---
 
