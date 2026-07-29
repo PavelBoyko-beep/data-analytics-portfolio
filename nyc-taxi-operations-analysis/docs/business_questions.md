@@ -26,6 +26,22 @@ The project will examine:
 * operational efficiency;
 * suspicious or invalid trip records.
 
+## Metric Definitions and Assumptions
+
+For this project, `total_amount` will initially be used as a proxy for gross trip revenue.
+
+However, the recorded total trip amount is not treated as confirmed net revenue received by a taxi company because it may include tips, tolls, taxes, surcharges, and other fees.
+
+The analysis will therefore distinguish between:
+
+- gross trip amount;
+- base fare amount;
+- tip amount;
+- tolls, taxes, surcharges, and other fees;
+- operational efficiency metrics such as gross trip amount per mile and per minute.
+
+The exact metric definitions will be confirmed after reviewing the dataset columns and the official data dictionary.
+
 ## Business Questions
 
 ### 1. Executive Overview
