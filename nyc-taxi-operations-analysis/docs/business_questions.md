@@ -47,8 +47,8 @@ The exact metric definitions will be confirmed after reviewing the dataset colum
 ### 1. Executive Overview
 
 1. How many taxi trips were recorded during the selected period?
-2. What were the total revenue, average fare, average trip distance, and average trip duration?
-3. What percentage of the total trip amount came from fares, tips, surcharges, taxes, and tolls?
+2. What were the total recorded trip amount, average fare, average trip distance, and average trip duration?
+3. How was the gross recorded trip amount distributed across fares, tips, surcharges, taxes, tolls, and other available components?
 
 ### 2. Demand and Time Patterns
 
